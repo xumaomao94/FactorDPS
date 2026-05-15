@@ -20,8 +20,8 @@ pip install -r requirements.txt
 
 Download the trained models from the links below and place them in the `./models/` directory.
 
-- **SLF model:** [Download SLF model](https://drive.google.com/file/d/12DAWWSnvpSVRFtuMbFxjnIoCEIXYvNbD/view?usp=drive_link)
-- **PSD model:** [Download PSD model](https://drive.google.com/file/d/1oC13vmTs6TLQJ2CxxlmFUFsU4cKG9ZRK/view?usp=drive_link)
+- **SLF model:** [Download SLF model](https://drive.google.com/file/d/1KBf7PjR4_JLP3Y8dpcaTUNexqhEyr4Yx/view?usp=drive_link)
+- **PSD model:** [Download PSD model](https://drive.google.com/file/d/1IPlyERTTcFSU5a8N53_s_KlgM4iGL7xv/view?usp=drive_link)
 
 The directory structure should look like:
 
