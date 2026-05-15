@@ -5,7 +5,7 @@
         1
     ],
     "path": { //set the path
-        "exp": "models/trainedPSD",
+        "exp": "modelsss/trainedPSD",
         "log": "logs",
         "tb_logger": "tb_logger",
         "results": "results",

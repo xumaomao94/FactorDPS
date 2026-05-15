@@ -7,6 +7,9 @@ def run_demo():
     config = "config/inference.json"
     save_folder = "./experiments/demo_multiK_multiR"
     
+    # Set the data root directory for RadioMapSeer dataset
+    data_root_dir = "/nfs/stak/users/xul2/hpc-share/datasets/SC/RadioMapSeer" 
+    
     sr = 1 # sampling rate 1%
     band_number = 64
     
@@ -21,6 +24,7 @@ def run_demo():
         "-sample_rate", str(sr),
         "-quantization_bits", "0",
         "-hole_ratio", "0",
+        "-data_root_dir", data_root_dir,
         "-save_folder", save_folder,
         "-random_seed", "0"
     ]

@@ -12,19 +12,37 @@ import core.logger as Logger
 import core.vis as visual
 from core.wandb_logger import WandbLogger
 from core.datasets import SLFDataset, RadioMapSeerSLFDataset, RadioMapSeerRMDataset
-import wandb
 from torchvision.utils import make_grid
 from utils.visualize import get_slf_as_grid
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 def log_images_as_grid(images, caption, title=None, plot_type='SLF', data_range=[None, None]):
+    import wandb
     # grid = make_grid(images, nrow=5, normalize=False)
     # wandb.log({"images": [wandb.Image(grid, caption=caption)]})
     fig = get_slf_as_grid(images, data_range=data_range,
                           title=title, plot_type=plot_type)
     wandb.log({caption: [wandb.Image(fig, caption=caption)]})
     plt.close(fig)
+
+
+def summarize_array(name, values):
+    if isinstance(values, torch.Tensor):
+        values = values.detach().cpu().float()
+        return (
+            f"{name}: shape={tuple(values.shape)}, "
+            f"min={values.min().item():.4e}, max={values.max().item():.4e}, "
+            f"mean={values.mean().item():.4e}, std={values.std().item():.4e}"
+        )
+
+    values = np.asarray(values)
+    return (
+        f"{name}: shape={values.shape}, "
+        f"min={np.min(values):.4e}, max={np.max(values):.4e}, "
+        f"mean={np.mean(values):.4e}, std={np.std(values):.4e}"
+    )
 
 
 if __name__ == "__main__":
@@ -96,7 +114,7 @@ if __name__ == "__main__":
     if opt["datasets"]["name"] == "RadioMapSteerWOcarsDPM-SamplingCondition-SLF-RMgen" or opt["datasets"]["name"] == "RadioMapSteerWOcarsDPM-SamplingCondition-RM" or opt["datasets"]["name"] == "RadioMapSteerWOcarsDPM-SamplingCondition-RM-fixC":
         batch_size = 16
     else:
-        batch_size = 32
+        batch_size = 16
         
     train_loader = DataLoader(train_set, batch_size=batch_size,
                               num_workers=8, shuffle=True)
@@ -111,6 +129,8 @@ if __name__ == "__main__":
     current_step = diffusion.begin_step
     current_epoch = diffusion.begin_epoch
     n_iter = opt['train']['n_iter']
+    val_freq = int(opt['train'].get('val_freq') or 2500)
+    save_checkpoint_freq = int(opt['train'].get('save_checkpoint_freq') or 25000)
 
     if opt['path']['resume_state']:
         logger.info('Resuming training from epoch: {}, iter: {}.'.format(
@@ -120,85 +140,106 @@ if __name__ == "__main__":
         opt['model']['beta_schedule'][opt['phase']], schedule_phase=opt['phase'])
 
     if opt['phase'] == 'train':
-        while current_step < n_iter:
-            current_epoch += 1
-            for _, train_data in enumerate(train_loader):
-                current_step += 1
-                if current_step > n_iter:
-                    break
-                diffusion.feed_data(train_data)
-                diffusion.optimize_parameters()
-                # log
-                if current_step % opt['train']['print_freq'] == 0:
-                    logs = diffusion.get_current_log()
-                    message = '<epoch:{:3d}, iter:{:8,d}> '.format(
-                        current_epoch, current_step)
-                    for k, v in logs.items():
-                        message += '{:s}: {:.4e} '.format(k, v)
-                    logger.info(message)
+        progress_bar = tqdm(total=n_iter, initial=current_step,
+                            desc='Training', unit='iter', dynamic_ncols=True)
+        try:
+            while current_step < n_iter:
+                current_epoch += 1
+                for _, train_data in enumerate(train_loader):
+                    current_step += 1
+                    if current_step > n_iter:
+                        break
+                    diffusion.feed_data(train_data)
+                    diffusion.optimize_parameters()
+                    progress_bar.update(1)
+                    # log
+                    if current_step % opt['train']['print_freq'] == 0:
+                        logs = diffusion.get_current_log()
+                        progress_bar.set_postfix(
+                            {k: f"{v:.4e}" for k, v in logs.items()}, refresh=False)
+                        message = '<epoch:{:3d}, iter:{:8,d}> '.format(
+                            current_epoch, current_step)
+                        for k, v in logs.items():
+                            message += '{:s}: {:.4e} '.format(k, v)
+                        logger.info(message)
 
-                    if wandb_logger:
-                        wandb_logger.log_metrics(logs)
+                        if wandb_logger:
+                            wandb_logger.log_metrics(logs)
 
-                # validation
-                if current_step % 2500 == 1:
-                    if wandb_logger:
-                        train_images = train_data["SLF"].cpu()
+                    # validation
+                    if current_step % val_freq == 0:
+                        logger.info('Running validation sampling at iter {:,d}.'.format(current_step))
+                        train_images = train_data["SLF"].detach().cpu()
                         train_images = train_images[:8] if train_images.size(
                             0) > 8 else train_images
-                        log_images_as_grid(train_set.reverse_transform(
-                            train_images), "Training Data")
+                        train_images = train_set.reverse_transform(train_images)
 
-                    result_path = '{}/{}'.format(opt['path']
-                                                 ['results'], current_epoch)
-                    os.makedirs(result_path, exist_ok=True)
+                        if wandb_logger:
+                            log_images_as_grid(train_images, "Training Data")
 
-                    mat_result_path = '{}/{}'.format(opt['path']
-                                                     ['mat_results'], current_epoch)
-                    os.makedirs(mat_result_path, exist_ok=True)
+                        result_path = '{}/{}'.format(opt['path']
+                                                     ['results'], current_epoch)
+                        os.makedirs(result_path, exist_ok=True)
 
-                    diffusion.set_new_noise_schedule(
-                        opt['model']['beta_schedule']['val'], schedule_phase='val')
+                        mat_result_path = '{}/{}'.format(opt['path']
+                                                         ['mat_results'], current_epoch)
+                        os.makedirs(mat_result_path, exist_ok=True)
 
-                    val_images = []
-                    condition_images = []
-                    for idx in range(8):
-                        if "mask" in train_data:
-                            condition_x = train_data["mask"][idx:idx+1,:,:,:]
-                        else:
-                            condition_x = None
+                        diffusion.set_new_noise_schedule(
+                            opt['model']['beta_schedule']['val'], schedule_phase='val')
 
-                        diffusion.sample(continous=False, condition_x=condition_x)
-                        visuals = diffusion.get_current_visuals(sample=True)
-                        sample_img = Metrics.tensor2img(
-                            visuals['SAMPLE'])  # uint8
-                        # rgbsample_img = Metrics.tensor2rgb_band8(
-                        #     visuals['SAMPLE'])  # uint8
+                        val_images = []
+                        condition_images = []
+                        for idx in range(8):
+                            if "mask" in train_data:
+                                condition_x = train_data["mask"][idx:idx+1, :, :, :]
+                            else:
+                                condition_x = None
 
-                        val_images.append(visuals['SAMPLE'].cpu().numpy())
-                        if condition_x is not None:
-                            condition_images.append(condition_x[0].cpu().numpy())
+                            diffusion.sample(continous=False, condition_x=condition_x)
+                            visuals = diffusion.get_current_visuals(sample=True)
+                            sample_img = Metrics.tensor2img(
+                                visuals['SAMPLE'])  # uint8
+                            # rgbsample_img = Metrics.tensor2rgb_band8(
+                            #     visuals['SAMPLE'])  # uint8
 
-                    diffusion.set_new_noise_schedule(
-                        opt['model']['beta_schedule']['train'], schedule_phase='train')
+                            val_images.append(visuals['SAMPLE'].cpu().numpy())
+                            if condition_x is not None:
+                                condition_images.append(condition_x[0].cpu().numpy())
 
-                    if wandb_logger:
+                        diffusion.set_new_noise_schedule(
+                            opt['model']['beta_schedule']['train'], schedule_phase='train')
+
                         val_images = np.concatenate(val_images, axis=0)
-                        log_images_as_grid(train_set.reverse_transform(
-                            val_images), "Sampled Data")
+                        sampled_images = train_set.reverse_transform(val_images)
+                        condition_images_array = None
+                        summary_parts = [
+                            summarize_array('training SLF', train_images),
+                            summarize_array('sampled SLF', sampled_images)
+                        ]
                         if condition_images:
-                            condition_images = np.concatenate(
+                            condition_images_array = np.concatenate(
                                 condition_images, axis=0)
-                            log_images_as_grid(condition_images, "Condition Data", plot_type="Condition", data_range=[condition_images.min(), condition_images.max()])
+                            summary_parts.append(
+                                summarize_array('condition', condition_images_array))
+                        logger.info(
+                            'Validation summary at iter {:,d}: {}'.format(
+                                current_step, ' | '.join(summary_parts)))
 
-                # if current_step % opt['train']['save_checkpoint_freq'] == 0:
-                if current_step % 25000 == 0:
-                    logger.info('Saving models and training states.')
-                    diffusion.save_network(current_epoch, current_step)
+                        if wandb_logger:
+                            log_images_as_grid(sampled_images, "Sampled Data")
+                            if condition_images_array is not None:
+                                log_images_as_grid(condition_images_array, "Condition Data", plot_type="Condition", data_range=[condition_images_array.min(), condition_images_array.max()])
 
-                    if wandb_logger and opt['log_wandb_ckpt']:
-                        wandb_logger.log_checkpoint(
-                            current_epoch, current_step)
+                    if current_step % save_checkpoint_freq == 0:
+                        logger.info('Saving models and training states.')
+                        diffusion.save_network(current_epoch, current_step)
+
+                        if wandb_logger and opt['log_wandb_ckpt']:
+                            wandb_logger.log_checkpoint(
+                                current_epoch, current_step)
+        finally:
+            progress_bar.close()
 
         # save model
         logger.info('End of training.')

@@ -44,7 +44,7 @@ class PSDGenerator:
             raise Exception("Invalid basis type set for generating psd!!!")
 
         Ctrue = np.empty((self.K, 0))
-        num_peaks_per_psd = 3 # XULE: should not fix this here
+        num_peaks_per_psd = 3
 
         for rr in range(num):
             psd_peaks = self.generate_random_array(2, self.K-5, num_peaks_per_psd)

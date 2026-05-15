@@ -1,0 +1,1 @@
+python main_train_psd.py -p=train -c=config/PSD_DDPM.json --gpu_ids=0

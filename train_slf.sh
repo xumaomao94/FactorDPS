@@ -1,0 +1,1 @@
+python main_train_slf.py -p=train -c=config/SLF_RadioMapSeer_DDPM_conditional_625Buildings.json --gpu_ids=0
