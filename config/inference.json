@@ -1,0 +1,18 @@
+{
+    "name": "inverse-RadioMapSeer-DDPM",
+    "phase": "inference",
+    "gpu_ids": [
+        1
+    ],
+    "SLF_config": {"config-path": "config/SLF_RadioMapSeer_DDPM_conditional_625Buildings.json",
+    "checkpoint": "trainedSLF_RadioMapSeer/checkpoint/I350000_E105",
+     "dataprocessor": "trainedSLF_RadioMapSeer/dataprocessor"
+    },
+    "PSD_config": {"config-path": "config/PSD_DDPM.json",
+    "checkpoint": "trainedPSD/checkpoint/I725000_E464",
+    "dataprocessor": "trainedPSD/dataprocessor"
+},
+    "conditioning":{
+        "slf_dps_lr": 1e-4,
+        "psd_dps_lr": 1e-4 }
+}
