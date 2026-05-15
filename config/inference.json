@@ -5,12 +5,12 @@
         1
     ],
     "SLF_config": {"config-path": "config/SLF_RadioMapSeer_DDPM_conditional_625Buildings.json",
-    "checkpoint": "trainedSLF_RadioMapSeer/checkpoint/I350000_E105",
-     "dataprocessor": "trainedSLF_RadioMapSeer/dataprocessor"
+    "checkpoint": "models/trainedSLF/checkpoint/I350000_E105",
+     "dataprocessor": "models/trainedSLF/dataprocessor"
     },
     "PSD_config": {"config-path": "config/PSD_DDPM.json",
-    "checkpoint": "trainedPSD/checkpoint/I725000_E464",
-    "dataprocessor": "trainedPSD/dataprocessor"
+    "checkpoint": "models/trainedPSD/checkpoint/I725000_E464",
+    "dataprocessor": "models/trainedPSD/dataprocessor"
 },
     "conditioning":{
         "slf_dps_lr": 1e-4,

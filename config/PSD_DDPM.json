@@ -1,0 +1,86 @@
+{
+    "name": "PSD-DM",
+    "phase": "train", // train or val
+    "gpu_ids": [
+        1
+    ],
+    "path": { //set the path
+        "exp": "models/trainedPSD",
+        "log": "logs",
+        "tb_logger": "tb_logger",
+        "results": "results",
+        "mat_results": "mat_results",
+        "checkpoint": "checkpoint",
+        "dataprocessor": "dataprocessor",
+        "resume_state": null // for validation, modify it to "./experiments/ddpm/*/checkpoints/I***_E***"
+    },
+    "datasets": {
+        "type": "PSD",
+        "train_data_num": 100000, // number of training data
+        "val_data_num": 10000, // number of validation data
+        "num_peaks": 3, // number of peaks in the data
+        "K": 64, // number of frequency bins
+        "basis_type": "g" // basis type
+
+    },
+    "model": {
+        "which_model_G": "ddpm",
+        "finetune_norm": false,
+        "psdnet": {
+            "in_channel": 1,
+            "out_channel": 1,
+            "inner_channel": 64,
+            "channel_multiplier": [
+                1,
+                2,
+                4,
+                8,
+                8
+            ],
+            "attn_res": [
+                16
+            ],
+            "res_blocks": 2,
+            "dropout": 0.2
+        },
+   
+        "beta_schedule": { // use munual beta_schedule for acceleration
+            "train": {
+                "schedule": "linear",
+                "n_timestep": 2000,
+                "linear_start": 1e-6,
+                "linear_end": 1e-2
+            },
+            "val": {
+                "schedule": "linear",
+                "n_timestep": 2000,
+                "linear_start": 1e-6,
+                "linear_end": 1e-2
+            }
+        },
+        "diffusion": {
+            "K": 64,
+            "channels": 1,
+            "conditional": false
+        }
+    },
+    "train": {
+        "batch_size": 64,
+        "n_iter": 30000000,
+        "val_freq": 1e4,
+        "save_checkpoint_freq": 1e4,
+        "print_freq": 20,
+        "optimizer": {
+            "type": "adam",
+            "lr": 1e-5
+        },
+        "ema_scheduler": { // not used now
+            "step_start_ema": 5000,
+            "update_ema_every": 1,
+            "ema_decay": 0.9999
+        }
+    },
+    "wandb": {
+        "project": "SC-Diffuse-PSD-DM"
+    }
+}
