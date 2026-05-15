@@ -73,3 +73,8 @@ The main training-related files are:
 
 - `inference.json`  
   Configuration file for inference, including the paths to the trained models.
+
+
+## Code Credits
+
+The initial implementation of this codebase was developed by Rajesh Shrestha. The code was later finetuned and organized by Le Xu.
