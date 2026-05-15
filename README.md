@@ -4,11 +4,11 @@ This repository contains the demo code for our paper:
 
 **"Completing Radio Map Tensors via Factor Diffusion Posterior Sampling"**
 
-## Instructions
+## 1. Instructions
 
 To run the demo code, please follow the steps below.
 
-### 1. Set up the Python environment
+### 1.1. Set up the Python environment
 
 Install the required Python packages with:
 
@@ -16,7 +16,7 @@ Install the required Python packages with:
 pip install -r requirements.txt
 ```
 
-### 2. Download the trained models
+### 1.2. Download the trained models
 
 Download the trained models from the links below and place them in the `./models/` directory.
 
@@ -32,7 +32,7 @@ FactorDPS/
 │   └── <PSD trained model files>
 ```
 
-### 3. Download the dataset
+### 1.3. Download the dataset
 
 Download the RadioMapSeer dataset from:
 
@@ -42,9 +42,9 @@ After downloading the dataset, modify the `data_root_dir` variable in the demo s
 
 ---
 
-## File Descriptions
+## 2. File Descriptions
 
-### Training
+### 2.1 Training
 
 To train the models, run the corresponding shell scripts:
 
@@ -63,7 +63,7 @@ The main training-related files are:
 - `config/PSD_DDPM.json`  
   Configuration file for PSD diffusion model training, including the training settings, dataset configuration, and network architecture.
 
-### Demo and Inference
+### 2.2 Demo and Inference
 
 - `demo_xxx.py`  
   Demo scripts for different experimental settings, including different numbers of frequency bands, different numbers of emitters, and different measurement degradation models such as central missing observations and quantized observations.
@@ -75,6 +75,6 @@ The main training-related files are:
   Configuration file for inference, including the paths to the trained models.
 
 
-## Code Credits
+## 3. Code Credits
 
 The initial implementation of this codebase was developed by Rajesh Shrestha. The code was later finetuned and organized by Le Xu.
