@@ -235,8 +235,6 @@ def run_dps(data, sc_dataset, opt, psd_diffusion, slf_diffusion, wandb_logger, c
     else:
         save_name = os.path.join(save_folder, os.path.basename(save_name))
     opt['save_name'] = save_name
-    np.savez_compressed(save_name, SLF=slf_final, PSD=psd_final, RM=rm_final, RM_log=rm_final_log, mask=mask_final, 
-                       lnrse=lnrse_t, runtime_seconds=total_runtime, measurement=measurement.detach().cpu().numpy())
     
     gt_rm_log = sc_dataset._to_log(data['RM'])
     rm_final_log_eval = rm_final_log.copy()
@@ -252,6 +250,9 @@ def run_dps(data, sc_dataset, opt, psd_diffusion, slf_diffusion, wandb_logger, c
         rm_final_log_mssim = rm_final_log_eval[:,:,np.newaxis]
     
     mssim_val = compare_mssim(gt_rm_mssim, rm_final_log_mssim, data_range=100, multidimension=False)
+
+    np.savez_compressed(save_name, SLF=slf_final, PSD=psd_final, RM=rm_final, RM_log=rm_final_log, mask=mask_final,
+                       lnrse=lnrse_t, mssim=mssim_val, runtime_seconds=total_runtime, measurement=measurement.detach().cpu().numpy())
 
     print("Inverse Sampling Done")
     print(f"Final LNRSE: {lnrse_t}")
